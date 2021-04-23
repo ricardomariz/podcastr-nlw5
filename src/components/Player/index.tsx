@@ -9,7 +9,7 @@ import { PlayerContext } from '../../contexts/PlayerContext';
 import styles from './styles.module.scss';
 
 export function Player() {
-  const { episodeList, currentEpisodeIndex, isPlaying, togglePlay } = useContext(PlayerContext)
+  const { episodeList, currentEpisodeIndex, isPlaying, togglePlay, setPlayingState } = useContext(PlayerContext)
   const episode = episodeList[currentEpisodeIndex]
   const audioRef = useRef<HTMLAudioElement>(null)
 
@@ -75,7 +75,13 @@ export function Player() {
 
         {
           episode && (
-            <audio src={episode.url} autoPlay ref={audioRef} />
+            <audio
+              src={episode.url}
+              autoPlay
+              ref={audioRef}
+              onPlay={() => setPlayingState(true)}
+              onPause={() => setPlayingState(false)}
+            />
           )
         }
 
