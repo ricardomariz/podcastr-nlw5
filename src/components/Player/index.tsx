@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import Slider from 'rc-slider'
 
@@ -10,6 +10,9 @@ import styles from './styles.module.scss';
 import { convertDurationToTimeString } from '../../utils/convertDurationToTimeString';
 
 export function Player() {
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const [progress, setProgress] = useState(0)
+
   const { episodeList,
     currentEpisodeIndex,
     isPlaying,
@@ -22,9 +25,10 @@ export function Player() {
     toggleLoop,
     toggleShuffle,
     isShuffling,
-    hasNext } = usePlayer()
-  const episode = episodeList[currentEpisodeIndex]
-  const audioRef = useRef<HTMLAudioElement>(null)
+    hasNext,
+    clearPlayerState } = usePlayer()
+
+
 
   useEffect(() => {
     if (!audioRef.current) {
@@ -37,6 +41,29 @@ export function Player() {
       audioRef.current.pause()
     }
   }, [isPlaying])
+
+  const episode = episodeList[currentEpisodeIndex]
+
+  function setupProgressListener() {
+    audioRef.current.currentTime = 0;
+
+    audioRef.current.addEventListener('timeupdate', () => {
+      setProgress(Math.floor(audioRef.current.currentTime))
+    })
+  }
+
+  function handleSeek(amount: number) {
+    audioRef.current.currentTime = amount;
+    setProgress(amount)
+  }
+
+  function handleEndedEpisode() {
+    if (hasNext) {
+      playNext()
+    } else {
+      clearPlayerState()
+    }
+  }
 
   return (
     <div className={styles.playerContainer}>
@@ -68,11 +95,14 @@ export function Player() {
 
       <footer className={!episode ? styles.empty : ''}>
         <div className={styles.progress}>
-          <span>00:00</span>
+          <span>{convertDurationToTimeString(progress)} </span>
           <div className={styles.slider}>
             {
               episode ? (
                 <Slider
+                  max={episode.duration}
+                  value={progress}
+                  onChange={handleSeek}
                   trackStyle={{ backgroundColor: '#04d361' }}
                   railStyle={{ backgroundColor: '#9f75ff' }}
                   handleStyle={{ borderColor: '#04d361', borderWidth: 4 }}
@@ -93,8 +123,10 @@ export function Player() {
               autoPlay
               loop={isLooping}
               ref={audioRef}
+              onEnded={handleEndedEpisode}
               onPlay={() => setPlayingState(true)}
               onPause={() => setPlayingState(false)}
+              onLoadedMetadata={setupProgressListener}
             />
           )
         }
